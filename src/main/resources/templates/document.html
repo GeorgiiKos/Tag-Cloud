@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="https://www.thymeleaf.org">
+<head>
+    <title>Dokument</title>
+</head>
+<body>
+<div>
+    <form method="GET" enctype="multipart/form-data" action="/batchLane/document">
+        <label>Dokument auswählen</label>
+
+        <select name="filename">
+            <option th:each="file : ${files}" th:value="${file}" th:text="${file}">
+        </select>
+        <input type="submit" value="Generieren"/>
+    </form>
+</div>
+
+</body>
+</html>
