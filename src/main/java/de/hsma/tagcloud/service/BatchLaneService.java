@@ -47,9 +47,18 @@ public class BatchLaneService {
         this.tagCloudConf = tagCloudConf;
     }
 
-    public void calculateCorpus() throws IOException, ClassNotFoundException, InterruptedException {
+    public void calculateCorpus() throws Exception {
         Configuration conf = new Configuration();
-        conf.set("numDocuments", String.valueOf(new File(tagCloudConf.getUploadPath()).list().length));
+        String[] documents = new File(tagCloudConf.getUploadPath()).list();
+        if (documents != null) {
+            if(documents.length == 0) {
+                throw new Exception("Documents not uploaded");
+            }
+            conf.set("numDocuments", String.valueOf(documents.length));
+        } else {
+            throw new Exception("Cannot find folder");
+        }
+
         final String timestamp = new SimpleDateFormat("yyyMMdd-HHmmssSSS").format(new Date());
         final String imageName = "norm_corpus_" + timestamp;
 
@@ -93,9 +102,18 @@ public class BatchLaneService {
         this.generateTagCloud(tagCloudConf.getHadoopOutPath() + "cs-output_" + timestamp, imageName);
     }
 
-    public void calculateDocument(String filename) throws IOException, ClassNotFoundException, InterruptedException {
+    public void calculateDocument(String filename) throws Exception {
         Configuration conf = new Configuration();
-        conf.set("numDocuments", String.valueOf(new File(tagCloudConf.getUploadPath()).list().length));
+        String[] documents = new File(tagCloudConf.getUploadPath()).list();
+        if (documents != null) {
+            if(documents.length == 0) {
+                throw new Exception("Documents not uploaded");
+            }
+            conf.set("numDocuments", String.valueOf(documents.length));
+        } else {
+            throw new Exception("Cannot find folder");
+        }
+
         final String timestamp = new SimpleDateFormat("yyyMMdd-HHmmssSSS").format(new Date());
         final String imageName = "norm_" + filename.substring(0, filename.lastIndexOf('.')) + "_" + timestamp;
 
@@ -306,15 +324,6 @@ public class BatchLaneService {
             return super.compare(a, b) * (-1);
         }
     }
-
-    public static class SwapReducer extends Reducer<IntWritable, Text, Text, IntWritable> {
-
-        @Override
-        protected void reduce(IntWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-            context.write(values.iterator().next(), key);
-        }
-    }
-
 
     private void generateTagCloud(String folder, String filename) {
         List<WordFrequency> resultFreq = this.parseResult(folder);

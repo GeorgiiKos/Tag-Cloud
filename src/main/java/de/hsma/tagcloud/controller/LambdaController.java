@@ -48,14 +48,14 @@ public class LambdaController {
     }
 
     @GetMapping(value = "/batchLane/document")
-    public String executeDocument(@RequestParam String filename) throws InterruptedException, IOException, ClassNotFoundException {
+    public String executeDocument(@RequestParam String filename) throws Exception {
         System.out.println(filename);
         this.batchLane.calculateDocument(filename);
         return "redirect:/overview";
     }
 
     @GetMapping("/batchLane/corpus")
-    public String executeCorpus() throws InterruptedException, IOException, ClassNotFoundException {
+    public String executeCorpus() throws Exception {
         batchLane.calculateCorpus();
         return "redirect:/overview";
     }
