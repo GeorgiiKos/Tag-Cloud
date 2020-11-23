@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="https://www.thymeleaf.org">
+<html lang="en" xmlns:th="https://www.thymeleaf.org">
 <head>
     <title>Dokument</title>
 </head>
@@ -7,9 +7,8 @@
 <h1>Normalisiertes Tag Cloud für ein Dokument</h1>
 <div>
     <form method="GET" enctype="multipart/form-data" action="/batchLane/document">
-        <label>Dokument auswählen</label>
-
-        <select name="filename">
+        <label for="document">Dokument auswählen</label>
+        <select id="document" name="filename">
             <option th:each="file : ${files}" th:value="${file}" th:text="${file}">
         </select>
         <input type="submit" value="Generieren"/>

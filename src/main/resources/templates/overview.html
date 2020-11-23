@@ -9,7 +9,7 @@
 <div>
     <ul>
         <li th:each="file : ${files}">
-            <a th:href="${'tagclouds/' + file}" th:text="${file}"></a>
+            <a th:href="${folder + file}" th:text="${file}"></a>
         </li>
     </ul>
 </div>

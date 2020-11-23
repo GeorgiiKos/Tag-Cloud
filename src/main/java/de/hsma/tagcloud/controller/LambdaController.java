@@ -63,6 +63,7 @@ public class LambdaController {
     @GetMapping("/overview")
     public String overviewFiles(Model model) {
         String[] images = new File(tagCloudConf.getTagcloudPath()).list();
+        model.addAttribute("folder", tagCloudConf.getTagcloudPath());
         if (images != null) {
             Arrays.sort(images, new TimestampDescComparator());
             model.addAttribute("files", images);
