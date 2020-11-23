@@ -14,7 +14,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -31,6 +33,9 @@ public class FastLaneService {
         frequencyAnalyzer.setWordFrequenciesToReturn(300);
         frequencyAnalyzer.setMinWordLength(4);
 
+        final String timestamp = new SimpleDateFormat("yyyMMdd-HHmmssSSS").format(new Date());
+        final String imageName = file.getOriginalFilename().substring(0, file.getOriginalFilename().lastIndexOf('.')) + "_" + timestamp + ".png";
+
         List<String> texts = new ArrayList<>();
         texts.add(new String(file.getBytes()));
         final List<WordFrequency> wordFrequencies = frequencyAnalyzer.load(texts);
@@ -42,7 +47,7 @@ public class FastLaneService {
         wordCloud.setColorPalette(new ColorPalette(new Color(0x4055F1), new Color(0x408DF1), new Color(0x40AAF1), new Color(0x40C5F1), new Color(0x40D3F1), new Color(0xFFFFFF)));
         wordCloud.setFontScalar(new SqrtFontScalar(8, 50));
         wordCloud.build(wordFrequencies);
-        wordCloud.writeToFile(tagCloudConf.getTagcloudPath() + file.getOriginalFilename() + ".png");
+        wordCloud.writeToFile(tagCloudConf.getTagcloudPath() + imageName);
         file.transferTo(new File(new File(tagCloudConf.getUploadPath() + file.getOriginalFilename()).getAbsolutePath()));
     }
 }

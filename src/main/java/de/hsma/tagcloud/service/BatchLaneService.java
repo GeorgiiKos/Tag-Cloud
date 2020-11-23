@@ -31,7 +31,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -48,7 +50,9 @@ public class BatchLaneService {
     public void calculateCorpus() throws IOException, ClassNotFoundException, InterruptedException {
         Configuration conf = new Configuration();
         conf.set("numDocuments", String.valueOf(new File(tagCloudConf.getUploadPath()).list().length));
-        final long currentTime = System.currentTimeMillis();
+        final String timestamp = new SimpleDateFormat("yyyMMdd-HHmmssSSS").format(new Date());
+        final String imageName = "norm_corpus_" + timestamp;
+
 
         // job 1
         Job job1 = Job.getInstance(conf, "Normalized Corpus");
@@ -63,7 +67,7 @@ public class BatchLaneService {
         job1.setOutputFormatClass(SequenceFileOutputFormat.class);
 
         FileInputFormat.addInputPath(job1, new Path(tagCloudConf.getUploadPath() + "*.txt"));
-        FileOutputFormat.setOutputPath(job1, new Path(tagCloudConf.getHadoopOutPath() + "nc-output_" + currentTime));
+        FileOutputFormat.setOutputPath(job1, new Path(tagCloudConf.getHadoopOutPath() + "nc-output_" + timestamp));
 
         job1.waitForCompletion(true);
 
@@ -82,17 +86,18 @@ public class BatchLaneService {
         job2.setSortComparatorClass(DescendingComparator.class);
         job2.setInputFormatClass(SequenceFileInputFormat.class);
 
-        FileInputFormat.addInputPath(job2, new Path(tagCloudConf.getHadoopOutPath() + "nc-output_" + currentTime));
-        FileOutputFormat.setOutputPath(job2, new Path(tagCloudConf.getHadoopOutPath() + "cs-output_" + currentTime));
+        FileInputFormat.addInputPath(job2, new Path(tagCloudConf.getHadoopOutPath() + "nc-output_" + timestamp));
+        FileOutputFormat.setOutputPath(job2, new Path(tagCloudConf.getHadoopOutPath() + "cs-output_" + timestamp));
 
         job2.waitForCompletion(true);
-        this.generateTagCloud(tagCloudConf.getHadoopOutPath() + "cs-output_" + currentTime, "norm_corpus");
+        this.generateTagCloud(tagCloudConf.getHadoopOutPath() + "cs-output_" + timestamp, imageName);
     }
 
     public void calculateDocument(String filename) throws IOException, ClassNotFoundException, InterruptedException {
         Configuration conf = new Configuration();
         conf.set("numDocuments", String.valueOf(new File(tagCloudConf.getUploadPath()).list().length));
-        final long currentTime = System.currentTimeMillis();
+        final String timestamp = new SimpleDateFormat("yyyMMdd-HHmmssSSS").format(new Date());
+        final String imageName = "norm_" + filename.substring(0, filename.lastIndexOf('.')) + "_" + timestamp;
 
         // job 1
         Job job1 = Job.getInstance(conf, "Word count");
@@ -106,7 +111,7 @@ public class BatchLaneService {
         job1.setOutputFormatClass(SequenceFileOutputFormat.class);
 
         FileInputFormat.addInputPath(job1, new Path(tagCloudConf.getUploadPath() + filename));
-        FileOutputFormat.setOutputPath(job1, new Path(tagCloudConf.getHadoopOutPath() + "wc-output_" + currentTime));
+        FileOutputFormat.setOutputPath(job1, new Path(tagCloudConf.getHadoopOutPath() + "wc-output_" + timestamp));
 
         // job 2
         Job job2 = Job.getInstance(conf, "Document frequency");
@@ -121,7 +126,7 @@ public class BatchLaneService {
         job2.setOutputFormatClass(SequenceFileOutputFormat.class);
 
         FileInputFormat.addInputPath(job2, new Path(tagCloudConf.getUploadPath() + "*.txt"));
-        FileOutputFormat.setOutputPath(job2, new Path(tagCloudConf.getHadoopOutPath() + "df-output_" + currentTime));
+        FileOutputFormat.setOutputPath(job2, new Path(tagCloudConf.getHadoopOutPath() + "df-output_" + timestamp));
 
         job1.waitForCompletion(true);
         job2.waitForCompletion(true);
@@ -129,10 +134,10 @@ public class BatchLaneService {
         // job 3
         Job job3 = Job.getInstance(conf, "Normalized Document");
         job3.setJarByClass(BatchLaneService.class);
-        MultipleInputs.addInputPath(job3, new Path(tagCloudConf.getHadoopOutPath() + "wc-output_" + currentTime), SequenceFileInputFormat.class, MapperA.class);
-        MultipleInputs.addInputPath(job3, new Path(tagCloudConf.getHadoopOutPath() + "df-output_" + currentTime), SequenceFileInputFormat.class, MapperB.class);
+        MultipleInputs.addInputPath(job3, new Path(tagCloudConf.getHadoopOutPath() + "wc-output_" + timestamp), SequenceFileInputFormat.class, MapperA.class);
+        MultipleInputs.addInputPath(job3, new Path(tagCloudConf.getHadoopOutPath() + "df-output_" + timestamp), SequenceFileInputFormat.class, MapperB.class);
         job3.setReducerClass(DocumentReducer.class);
-        FileOutputFormat.setOutputPath(job3, new Path(tagCloudConf.getHadoopOutPath() + "dn-output_" + currentTime));
+        FileOutputFormat.setOutputPath(job3, new Path(tagCloudConf.getHadoopOutPath() + "dn-output_" + timestamp));
         job3.setMapOutputKeyClass(Text.class);
         job3.setMapOutputValueClass(Text.class);
         job3.setOutputKeyClass(Text.class);
@@ -157,11 +162,11 @@ public class BatchLaneService {
         job4.setSortComparatorClass(DescendingComparator.class);
         job4.setInputFormatClass(SequenceFileInputFormat.class);
 
-        FileInputFormat.addInputPath(job4, new Path(tagCloudConf.getHadoopOutPath() + "dn-output_" + currentTime));
-        FileOutputFormat.setOutputPath(job4, new Path(tagCloudConf.getHadoopOutPath() + "ds-output_" + currentTime));
+        FileInputFormat.addInputPath(job4, new Path(tagCloudConf.getHadoopOutPath() + "dn-output_" + timestamp));
+        FileOutputFormat.setOutputPath(job4, new Path(tagCloudConf.getHadoopOutPath() + "ds-output_" + timestamp));
 
         job4.waitForCompletion(true);
-        this.generateTagCloud(tagCloudConf.getHadoopOutPath() + "ds-output_" + currentTime, "norm_" + filename);
+        this.generateTagCloud(tagCloudConf.getHadoopOutPath() + "ds-output_" + timestamp, imageName);
     }
 
     public static class TokenizerMapper extends Mapper<Object, Text, Text, IntWritable> {
