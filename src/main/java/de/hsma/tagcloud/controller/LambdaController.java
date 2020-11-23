@@ -31,37 +31,37 @@ public class LambdaController {
     }
 
     @GetMapping("/upload")
-    public String upload() {
+    public String uploadFile() {
         return "upload";
     }
 
     @GetMapping("/document")
-    public String document(Model model) {
+    public String selectDocument(Model model) {
         model.addAttribute("files", new File(tagCloudConf.getUploadPath()).list());
         return "document";
     }
 
     @PostMapping("/fastLane")
-    public String process(MultipartFile file) throws IOException {
+    public String processFile(MultipartFile file) throws IOException {
         fastLane.generateTagCloud(file);
         return "redirect:/overview";
     }
 
     @GetMapping(value = "/batchLane/document")
-    public String executeDoc(@RequestParam String filename) throws InterruptedException, IOException, ClassNotFoundException {
+    public String executeDocument(@RequestParam String filename) throws InterruptedException, IOException, ClassNotFoundException {
         System.out.println(filename);
         this.batchLane.calculateDocument(filename);
         return "redirect:/overview";
     }
 
     @GetMapping("/batchLane/corpus")
-    public String execute() throws InterruptedException, IOException, ClassNotFoundException {
+    public String executeCorpus() throws InterruptedException, IOException, ClassNotFoundException {
         batchLane.calculateCorpus();
         return "redirect:/overview";
     }
 
     @GetMapping("/overview")
-    public String overview(Model model) {
+    public String overviewFiles(Model model) {
         String[] images = new File(tagCloudConf.getTagcloudPath()).list();
         if (images != null) {
             Arrays.sort(images, new TimestampDescComparator());
