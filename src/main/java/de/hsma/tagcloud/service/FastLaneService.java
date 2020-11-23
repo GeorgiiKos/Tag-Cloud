@@ -7,7 +7,7 @@ import com.kennycason.kumo.bg.CircleBackground;
 import com.kennycason.kumo.font.scale.SqrtFontScalar;
 import com.kennycason.kumo.nlp.FrequencyAnalyzer;
 import com.kennycason.kumo.palette.ColorPalette;
-import de.hsma.tagcloud.controller.LambdaController;
+import de.hsma.tagcloud.conf.TagCloudConf;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,6 +19,12 @@ import java.util.List;
 
 @Service
 public class FastLaneService {
+
+    private final TagCloudConf tagCloudConf;
+
+    public FastLaneService(TagCloudConf tagCloudConf) {
+        this.tagCloudConf = tagCloudConf;
+    }
 
     public void generateTagCloud(MultipartFile file) throws IOException {
         final FrequencyAnalyzer frequencyAnalyzer = new FrequencyAnalyzer();
@@ -36,7 +42,7 @@ public class FastLaneService {
         wordCloud.setColorPalette(new ColorPalette(new Color(0x4055F1), new Color(0x408DF1), new Color(0x40AAF1), new Color(0x40C5F1), new Color(0x40D3F1), new Color(0xFFFFFF)));
         wordCloud.setFontScalar(new SqrtFontScalar(8, 50));
         wordCloud.build(wordFrequencies);
-        wordCloud.writeToFile(LambdaController.CLOUD_PATH + file.getOriginalFilename() + ".png");
-        file.transferTo(new File("C:/Users/Georgii/Documents/1IM/BDEA/tag-cloud/upload/" + file.getOriginalFilename()));
+        wordCloud.writeToFile(tagCloudConf.getTagcloudPath() + file.getOriginalFilename() + ".png");
+        file.transferTo(new File(new File(tagCloudConf.getUploadPath() + file.getOriginalFilename()).getAbsolutePath()));
     }
 }

@@ -1,7 +1,9 @@
 package de.hsma.tagcloud.controller;
 
+import de.hsma.tagcloud.conf.TagCloudConf;
 import de.hsma.tagcloud.service.BatchLaneService;
 import de.hsma.tagcloud.service.FastLaneService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,13 +17,14 @@ import java.io.IOException;
 @Controller
 public class LambdaController {
 
-    public final static String CLOUD_PATH = "tagclouds/";
     private final FastLaneService fastLane;
     private final BatchLaneService batchLane;
+    private final TagCloudConf tagCloudConf;
 
-    public LambdaController(FastLaneService fastLane, BatchLaneService batchLane) {
+    public LambdaController(FastLaneService fastLane, BatchLaneService batchLane, TagCloudConf tagCloudConf) {
         this.fastLane = fastLane;
         this.batchLane = batchLane;
+        this.tagCloudConf = tagCloudConf;
     }
 
     @GetMapping("/upload")
@@ -31,7 +34,7 @@ public class LambdaController {
 
     @GetMapping("/document")
     public String document(Model model) {
-        model.addAttribute("files", new File("upload/").list());
+        model.addAttribute("files", new File(tagCloudConf.getUploadPath()).list());
         return "document";
     }
 
@@ -56,7 +59,7 @@ public class LambdaController {
 
     @GetMapping("/overview")
     public String overview(Model model) {
-        model.addAttribute("files", new File(CLOUD_PATH).list());
+        model.addAttribute("files", new File(tagCloudConf.getTagcloudPath()).list());
         return "overview";
     }
 

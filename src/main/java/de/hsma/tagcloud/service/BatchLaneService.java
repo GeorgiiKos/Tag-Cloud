@@ -4,10 +4,10 @@ import com.kennycason.kumo.CollisionMode;
 import com.kennycason.kumo.WordCloud;
 import com.kennycason.kumo.WordFrequency;
 import com.kennycason.kumo.bg.RectangleBackground;
-import com.kennycason.kumo.font.scale.SqrtFontScalar;
+import com.kennycason.kumo.font.scale.LinearFontScalar;
 import com.kennycason.kumo.nlp.FrequencyAnalyzer;
-import com.kennycason.kumo.palette.LinearGradientColorPalette;
-import de.hsma.tagcloud.controller.LambdaController;
+import com.kennycason.kumo.palette.ColorPalette;
+import de.hsma.tagcloud.conf.TagCloudConf;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -39,10 +39,15 @@ import java.util.regex.Pattern;
 @Service
 public class BatchLaneService {
 
+    private final TagCloudConf tagCloudConf;
+
+    public BatchLaneService(TagCloudConf tagCloudConf) {
+        this.tagCloudConf = tagCloudConf;
+    }
+
     public void calculateCorpus() throws IOException, ClassNotFoundException, InterruptedException {
         Configuration conf = new Configuration();
-
-        conf.set("numDocuments", String.valueOf(new File("upload/").list().length));
+        conf.set("numDocuments", String.valueOf(new File(tagCloudConf.getUploadPath()).list().length));
         final long currentTime = System.currentTimeMillis();
 
         // job 1
@@ -57,8 +62,8 @@ public class BatchLaneService {
 
         job1.setOutputFormatClass(SequenceFileOutputFormat.class);
 
-        FileInputFormat.addInputPath(job1, new Path("upload/*.txt"));
-        FileOutputFormat.setOutputPath(job1, new Path("hadoop-out/nc-output_" + currentTime));
+        FileInputFormat.addInputPath(job1, new Path(tagCloudConf.getUploadPath() + "*.txt"));
+        FileOutputFormat.setOutputPath(job1, new Path(tagCloudConf.getHadoopOutPath() + "nc-output_" + currentTime));
 
         job1.waitForCompletion(true);
 
@@ -77,15 +82,16 @@ public class BatchLaneService {
         job2.setSortComparatorClass(DescendingComparator.class);
         job2.setInputFormatClass(SequenceFileInputFormat.class);
 
-        FileInputFormat.addInputPath(job2, new Path("hadoop-out/nc-output_" + currentTime));
-        FileOutputFormat.setOutputPath(job2, new Path("hadoop-out/cs-output_" + currentTime));
+        FileInputFormat.addInputPath(job2, new Path(tagCloudConf.getHadoopOutPath() + "nc-output_" + currentTime));
+        FileOutputFormat.setOutputPath(job2, new Path(tagCloudConf.getHadoopOutPath() + "cs-output_" + currentTime));
 
         job2.waitForCompletion(true);
-        this.generateTagCloud("hadoop-out/cs-output_" + currentTime, "norm_corpus");
+        this.generateTagCloud(tagCloudConf.getHadoopOutPath() + "cs-output_" + currentTime, "norm_corpus");
     }
 
     public void calculateDocument(String filename) throws IOException, ClassNotFoundException, InterruptedException {
         Configuration conf = new Configuration();
+        conf.set("numDocuments", String.valueOf(new File(tagCloudConf.getUploadPath()).list().length));
         final long currentTime = System.currentTimeMillis();
 
         // job 1
@@ -99,8 +105,8 @@ public class BatchLaneService {
 
         job1.setOutputFormatClass(SequenceFileOutputFormat.class);
 
-        FileInputFormat.addInputPath(job1, new Path("upload/" + filename));
-        FileOutputFormat.setOutputPath(job1, new Path("hadoop-out/wc-output_" + currentTime));
+        FileInputFormat.addInputPath(job1, new Path(tagCloudConf.getUploadPath() + filename));
+        FileOutputFormat.setOutputPath(job1, new Path(tagCloudConf.getHadoopOutPath() + "wc-output_" + currentTime));
 
         // job 2
         Job job2 = Job.getInstance(conf, "Document frequency");
@@ -114,8 +120,8 @@ public class BatchLaneService {
 
         job2.setOutputFormatClass(SequenceFileOutputFormat.class);
 
-        FileInputFormat.addInputPath(job2, new Path("upload/*.txt"));
-        FileOutputFormat.setOutputPath(job2, new Path("hadoop-out/df-output_" + currentTime));
+        FileInputFormat.addInputPath(job2, new Path(tagCloudConf.getUploadPath() + "*.txt"));
+        FileOutputFormat.setOutputPath(job2, new Path(tagCloudConf.getHadoopOutPath() + "df-output_" + currentTime));
 
         job1.waitForCompletion(true);
         job2.waitForCompletion(true);
@@ -123,10 +129,10 @@ public class BatchLaneService {
         // job 3
         Job job3 = Job.getInstance(conf, "Normalized Document");
         job3.setJarByClass(BatchLaneService.class);
-        MultipleInputs.addInputPath(job3, new Path("hadoop-out/wc-output_" + currentTime), SequenceFileInputFormat.class, MapperA.class);
-        MultipleInputs.addInputPath(job3, new Path("hadoop-out/df-output_" + currentTime), SequenceFileInputFormat.class, MapperB.class);
+        MultipleInputs.addInputPath(job3, new Path(tagCloudConf.getHadoopOutPath() + "wc-output_" + currentTime), SequenceFileInputFormat.class, MapperA.class);
+        MultipleInputs.addInputPath(job3, new Path(tagCloudConf.getHadoopOutPath() + "df-output_" + currentTime), SequenceFileInputFormat.class, MapperB.class);
         job3.setReducerClass(DocumentReducer.class);
-        FileOutputFormat.setOutputPath(job3, new Path("hadoop-out/dn-output_" + currentTime));
+        FileOutputFormat.setOutputPath(job3, new Path(tagCloudConf.getHadoopOutPath() + "dn-output_" + currentTime));
         job3.setMapOutputKeyClass(Text.class);
         job3.setMapOutputValueClass(Text.class);
         job3.setOutputKeyClass(Text.class);
@@ -151,11 +157,11 @@ public class BatchLaneService {
         job4.setSortComparatorClass(DescendingComparator.class);
         job4.setInputFormatClass(SequenceFileInputFormat.class);
 
-        FileInputFormat.addInputPath(job4, new Path("hadoop-out/dn-output_" + currentTime));
-        FileOutputFormat.setOutputPath(job4, new Path("hadoop-out/ds-output_" + currentTime));
+        FileInputFormat.addInputPath(job4, new Path(tagCloudConf.getHadoopOutPath() + "dn-output_" + currentTime));
+        FileOutputFormat.setOutputPath(job4, new Path(tagCloudConf.getHadoopOutPath() + "ds-output_" + currentTime));
 
         job4.waitForCompletion(true);
-        this.generateTagCloud("hadoop-out/ds-output_" + currentTime, "norm_" + filename);
+        this.generateTagCloud(tagCloudConf.getHadoopOutPath() + "ds-output_" + currentTime, "norm_" + filename);
     }
 
     public static class TokenizerMapper extends Mapper<Object, Text, Text, IntWritable> {
@@ -226,7 +232,7 @@ public class BatchLaneService {
                     uniqueValues.add(stringVal);
                 }
             }
-            result.set((int) Math.round((double) counter / ((double) uniqueValues.size() / (double) numDocuments)));
+            result.set((int) Math.round((double) counter * (Math.log((double) numDocuments / (double) uniqueValues.size()))));
             context.write(key, result);
         }
     }
@@ -236,10 +242,13 @@ public class BatchLaneService {
 
         @Override
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+            int numDocuments = Integer.parseInt(context.getConfiguration().get("numDocuments"));
             int valueA = 0;
             int valueB = 0;
+            int counter = 0;
 
             for (Text textValue : values) {
+                counter++;
                 String stringValue = textValue.toString();
                 if (stringValue.startsWith("A")) {
                     valueA = Integer.parseInt(stringValue.substring(1));
@@ -247,8 +256,10 @@ public class BatchLaneService {
                     valueB = Integer.parseInt(stringValue.substring(1));
                 }
             }
-            result.set((int) Math.round((double) valueA / (double) valueB));
-            context.write(key, result);
+            if (counter == 2) {
+                result.set((int) Math.round((double) valueA * Math.log((double) numDocuments / (double) valueB) * 1000));
+                context.write(key, result);
+            }
         }
 
     }
@@ -300,7 +311,7 @@ public class BatchLaneService {
     }
 
 
-    private void generateTagCloud(String folder, String filename) throws IOException {
+    private void generateTagCloud(String folder, String filename) {
         List<WordFrequency> resultFreq = this.parseResult(folder);
         List<WordFrequency> resultFilter = this.filterResult(resultFreq);
 
@@ -314,14 +325,14 @@ public class BatchLaneService {
         final WordCloud wordCloud = new WordCloud(dimension, CollisionMode.RECTANGLE);
         wordCloud.setPadding(0);
         wordCloud.setBackground(new RectangleBackground(dimension));
-        wordCloud.setColorPalette(new LinearGradientColorPalette(Color.RED, Color.BLUE, Color.GREEN, 30, 30));
-        wordCloud.setFontScalar(new SqrtFontScalar(10, 40));
+        wordCloud.setColorPalette(new ColorPalette(Color.RED, Color.GREEN, Color.YELLOW, Color.BLUE));
+        wordCloud.setFontScalar(new LinearFontScalar(10, 40));
         wordCloud.build(wordFrequencies);
-        wordCloud.writeToFile(LambdaController.CLOUD_PATH + filename + ".png");
+        wordCloud.writeToFile(tagCloudConf.getTagcloudPath() + filename + ".png");
     }
 
     private List<WordFrequency> parseResult(String folder) {
-        final int linesToRead = 800;
+        final int linesToRead = 600;
         int lineCounter = 0;
 
         List<WordFrequency> wordFrequencies = new ArrayList<>();
